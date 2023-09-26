@@ -1,104 +1,76 @@
 ﻿using System;
 using System.Collections.Generic;
-using System.ComponentModel;
+using System.Collections.ObjectModel;
 using System.Linq;
 using System.Runtime.CompilerServices;
-using System.Text;
-using System.Threading.Tasks;
 
-namespace Engine
+namespace Engine.Models
 {
-    public class Player : INotifyPropertyChanged
+    public class Player : LivingEntity
     {
-        private string _name;
+        #region Properties
         private string _characterClass;
-        private int _hitPoints;
         private int _experiencePoints;
-        private int _level;
-        private int _gold;
-
-        public string Name
-        {
-            get { return _name; }
-            set
-            {
-                _name = value;
-                OnPropertyChanged("Name");
-            }
-
-        }
         public string CharacterClass
         {
             get { return _characterClass; }
             set
             {
                 _characterClass = value;
-                OnPropertyChanged("CharacterClass");
+                OnPropertyChanged();
             }
-
-        }
-        public int HitPoints
-        {
-            get { return _hitPoints; }
-            set
-            {
-                _hitPoints = value;
-                OnPropertyChanged("HitPoints");
-            }
-
         }
         public int ExperiencePoints
         {
             get { return _experiencePoints; }
-            set
+            private set
             {
                 _experiencePoints = value;
-                OnPropertyChanged("ExperiencePoints");
-            }
 
+                OnPropertyChanged();
+
+                SetLevelAndMaximumHitPoints();
+            }
         }
-        public int Level
+        public ObservableCollection<QuestStatus> Quests { get; }
+        #endregion
+
+        public event EventHandler OnLeveledUp;
+        public Player(string name, string characterClass, int experiencePoints,
+                      int maximumHitPoints, int currentHitPoints, int gold) :
+            base(name, maximumHitPoints, currentHitPoints, gold)
         {
-            get { return _level; }
-            set
+            CharacterClass = characterClass;
+            ExperiencePoints = experiencePoints;
+        }
+        public bool HasAllTheseItems(List<ItemQuantity> items)
+        {
+            foreach (ItemQuantity item in items)
             {
-                _level = value;
-                OnPropertyChanged("Level");
+                if (Inventory.Count(i => i.ItemTypeID == item.ItemID) < item.Quantity)
+                {
+                    return false;
+                }
             }
-
+            return true;
         }
-        public int Gold
+        public void AddExperience(int experiencePoints)
         {
-            get { return _gold; }
-            set
+            ExperiencePoints += experiencePoints;
+        }
+
+        private void SetLevelAndMaximumHitPoints()
+        {
+            int originalLevel = Level;
+
+            Level = (ExperiencePoints / 100) + 1;
+
+            if( Level != originalLevel ) 
             {
-                _gold = value;
-                OnPropertyChanged("Gold");
+                MaximumHitPoints = Level * 10;
+
+                OnLeveledUp?.Invoke(this, System.EventArgs.Empty);
             }
-
         }
-
-        public event PropertyChangedEventHandler PropertyChanged;
-
-        protected virtual void OnPropertyChanged(string propertyName)
-        {
-            PropertyChanged?.Invoke(this, new PropertyChangedEventArgs(propertyName));
-        }
-
-        protected bool SetProperty<T>(ref T field, T newValue, [CallerMemberName] string propertyName = null)
-        {
-            if (!Equals(field, newValue))
-            {
-                field = newValue;
-                PropertyChanged?.Invoke(this, new PropertyChangedEventArgs(propertyName));
-                return true;
-            }
-
-            return false;
-        }
-
-        private bool hasLocationToNorth;
-
-        public bool HasLocationToNorth { get => hasLocationToNorth; set => SetProperty(ref hasLocationToNorth, value); }
     }
 }
